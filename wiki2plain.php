@@ -14,8 +14,6 @@ wiki2plain( $argv[1], $argv[2] );
 
 
 
-
-
 //////////////////////////////////////////
 function wiki2plain( $xml_fn, $txt_fn ) {
 
@@ -66,6 +64,7 @@ function wiki2plain( $xml_fn, $txt_fn ) {
 			fputs( $txt_fp, "\n\n" );
 //			break; }
 
+			if( $page_cnt > 1000 )	break;
 			$page_cnt++;
 		}
 
@@ -81,34 +80,19 @@ function wiki2plain( $xml_fn, $txt_fn ) {
 }
 
 function plain( $str ) {
-//	return $str;
 	$str = strip_preproc( $str );
 	$str = strip_head( $str );
-//	return $str;
-	$str = strip_brace( $str );
-	$str = strip_wikitag( $str );
 	$str = strip_htmltag( $str );
+	$str = strip_wikitag( $str );
 	$str = strip_postproc( $str );
+//	return $str;
 	return trim( $str );
 }
 
-function remove_bound( $str, $begin, $end )
-{
-	while( true ) {
-		$pos = strpos( $str, $begin ); if( $pos === false )	break;
-		$pos2 = strpos( $str, $end, $pos+strlen($begin) ); if( $pos2 === false )	break;
-		//$str = substr( $str, 0, $pos ) . substr( $str, $pos+strlen($begin), $pos2-($pos+strlen($begin) ) ) . substr( $str, $pos2+strlen($end) );
-		$str = substr( $str, 0, $pos ) . substr( $str, $pos2+strlen($end) );
-		//echo "[". substr( $str, $pos+strlen($begin), $pos2-($pos+strlen($begin) ) ) ."]\n";
-	}
-	return $str;
-}
 
 function strip_preproc( $str ) {
 	$str = str_replace( "\r", "",$str );
-	$str = remove_bound( $str, "&lt;math&gt;", "&lt;/math&gt;" );
-
-
+	//$str = remove_bound( $str, "&lt;math&gt;", "&lt;/math&gt;" );
 	return $str;
 }
 function strip_postproc( $str ) {
@@ -131,28 +115,22 @@ function strip_postproc( $str ) {
 }
 
 function strip_head( $str ) {
-#	preg_replace("/( www.)([\w\.-]+)/e", "'<a href=\"http://\\0\" target=\"_blank\">\\0</a>'", $str);
-	$pattern = array();
-	$replace = array();
+	$str = remove_bound( $str, "<ns>", "</ns>" );
+	$str = remove_bound( $str, "<id>", "</id>" );
+	$str = remove_bound( $str, "<sha1>", "</sha1>" );
+	$str = remove_bound( $str, "<model>", "</model>" );
+	$str = remove_bound( $str, "<timestamp>", "</timestamp>" );
+	$str = remove_bound( $str, "<contributor>", "</contributor>" );
+	$str = remove_bound( $str, "<comment>", "</comment>" );
+	$str = remove_bound( $str, "<format>", "</format>" );
+	$str = remove_bound( $str, "<parentid>", "</parentid>" );
 
-	$pattern[] = "/(\s+)<ns>(.*)<\/ns>/e"; $replace[] = "";
-	$pattern[] = "/(\s+)<id>(.*)<\/id>/e"; $replace[] = "";
-	$pattern[] = "/(\s+)<sha1>(.*)<\/sha1>/e"; $replace[] = "";
-	$pattern[] = "/(\s+)<model>(.*)<\/model>/e"; $replace[] = "";
-	$pattern[] = "/(\s+)<format>(.*)<\/format>/e"; $replace[] = "";
-	$pattern[] = "/(\s+)<parentid>(.*)<\/parentid>/e"; $replace[] = "";
-	$pattern[] = "/(\s+)<timestamp>(.*)<\/timestamp>/e"; $replace[] = "";
-	$pattern[] = "/(\s+)<minor \/>/e"; $replace[] = "";
-	$pattern[] = "/(\s+)<contributor>(.*)<\/contributor>/es"; $replace[] = "";
-	$pattern[] = "/(\s+)<comment>(.*)<\/comment>/e"; $replace[] = "";
+	$str = remove_bound( $str, "<title>", "</title>", true );
+	$str = remove_bound( $str, "<redirect title=\"", "\" />", true );
+	$str = remove_bound( $str, "<text xml:space=\"preserve\">", "</text>", true );
+	$str = remove_bound( $str, "<revision>", "</revision>", true );
 
-	$pattern[] = "/(\s+)<title>(.*)<\/title>/s"; $replace[] = "$2\n";
-	$pattern[] = "/(\s+)<redirect title=\"(.*)\" \/>/s"; $replace[] = "";
-	$pattern[] = "/(\s+)<revision>(.*)<\/revision>/s"; $replace[] = "$2";
-	$pattern[] = "/<text (.*)>(.*)<\/text>/s"; $replace[] = "$2";
-	//$pattern[] = "/(\s+)<revision>(.*)<\/revision>/e"; $replace[] = "";
-
-	$str = preg_replace( $pattern, $replace, $str );
+	$str = str_replace( "<minor />", "", $str );
 	return $str;
 }
 
@@ -204,31 +182,56 @@ function strip_brace( $str ) {
 
 
 function strip_wikitag( $str ) {
-	$pattern = array();
-	$replace = array();
-
-	$pattern[] = "/====(.*)====/"; $replace[] = "$1";
-	$pattern[] = "/===(.*)===/"; $replace[] = "$1";
-	$pattern[] = "/==(.*)==/"; $replace[] = "$1";
-	$pattern[] = "/=(.*)=/"; $replace[] = "$1";
-	$pattern[] = "/'''/"; $replace[] = "";
-	$pattern[] = "/''/"; $replace[] = "";
-
-//	$pattern[] = "/\[\[(.*)\]\]/"; $replace[] = "($1)";
-	$str = preg_replace( $pattern, $replace, $str );
-
+	$str =strip_brace( $str );
+	$str = remove_bound( $str, "<math>", "</math>" );
+	$str = remove_bound( $str, "<ref>", "</ref>" );
+	$str = remove_bound( $str, "<ref ", "</ref>" );
+	$str = remove_bound( $str, "<ref ", "/>" );
 	$str = remove_bound( $str, "{|", "|}" );
+	$str = str_replace( "'''", "", $str );
+	$str = str_replace( "''", "", $str );
+
+
+	$arr = explode( "\n", $str );
+	$str = "";
+	for($i=0; $i<count($arr); $i++ ) {
+		$tmp = trim($arr[$i]);
+		if( strlen( $tmp ) == 0 )	continue;
+
+		$str = remove_bound( $str, "=====", "=====", true );
+		$str = remove_bound( $str, "====", "====", true );
+		$str = remove_bound( $str, "===", "===", true );
+		$str = remove_bound( $str, "==", "==", true );
+		$str = remove_bound( $str, "=", "=", true );
+
+		while( true ) {
+			$pos = strpos( $str, "[http" ); if( $pos === false )	break;
+			$pos2 = strpos( $str, " ", $pos+3 ); if( $pos2 === false )	break;
+			$pos3 = strpos( $str, "]", $pos2+1 ); if( $pos3 === false )	break;
+			$str = substr( $str, 0, $pos ) . substr( $str, $pos2+1, $pos3-$pos2-1 ) . substr( $str, $pos3+1 );
+		}
+
+		$str .= $tmp . "\n";
+	}
 
 	return $str;
 }
 
-function strip_htmltag( $str ) {
+function strip_htmltag( $str )
+{
+	$str = str_ireplace( "&amp;", "&", $str );
+	$str = str_ireplace( "&nbsp;", " ", $str );
+	$str = str_ireplace( "&quot;", "\"", $str );
+	$str = str_ireplace( "&lt;", "<", $str );
+	$str = str_ireplace( "&gt;", ">", $str );
+	$str = str_ireplace( "<br>;", "\n", $str );
+	$str = str_ireplace( "<br />;", "\n", $str );
+	$str = remove_bound( $str, "<!--", "-->", $str );
+
+	return $str;
 	$pattern = array();
 	$replace = array();
 
-	$pattern[] = "/&quot;/"; $replace[] = "\"";
-	$pattern[] = "/&lt;/"; $replace[] = "<";
-	$pattern[] = "/&gt;/"; $replace[] = ">";
 	$pattern[] = "/<references(.*)\/>/"; $replace[] = "";
 	$pattern[] = "/<br \/>/"; $replace[] = "\n";
 	$pattern[] = "/<br>/"; $replace[] = "\n";
@@ -246,22 +249,28 @@ function strip_htmltag( $str ) {
 	$pattern[] = "/(\s+)<center>(.*)<\/center>/s"; $replace[] = "";
 	$str = preg_replace( $pattern, $replace, $str );
 
-	$str = remove_bound( $str, "<ref ", "/>" );
-	$str = remove_bound( $str, "<ref>", "</ref>" );
-	$str = remove_bound( $str, "<ref ", "</ref>" );
-	$str = remove_bound( $str, "<!--", "-->" );
 
-	while( true ) {
-		$pos = strpos( $str, "[http" ); if( $pos === false )	break;
-		$pos2 = strpos( $str, " ", $pos+3 ); if( $pos2 === false )	break;
-		$pos3 = strpos( $str, "]", $pos2+1 ); if( $pos3 === false )	break;
-		$str = substr( $str, 0, $pos ) . substr( $str, $pos2+1, $pos3-$pos2-1 ) . substr( $str, $pos3+1 );
-	}
 
 
 	$str = strip_tags( $str );
 	$str = str_replace( "\n\n", "\n", $str );
 
+	return $str;
+}
+
+function remove_bound( $str, $begin, $end, $inner = false )
+{
+	while( true ) {
+		$pos = strpos( $str, $begin ); if( $pos === false )	break;
+		$pos2 = strpos( $str, $end, $pos+strlen($begin) ); if( $pos2 === false )	break;
+		if( $inner == true ) {
+			$str = substr( $str, 0, $pos ) . substr( $str, $pos+strlen( $begin), $pos2-($pos+strlen($begin))). substr( $str, $pos2+strlen($end) );
+		}
+		else {
+			$str = substr( $str, 0, $pos ) . substr( $str, $pos2+strlen($end) );
+		}
+
+	}
 	return $str;
 }
 
