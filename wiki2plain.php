@@ -58,13 +58,13 @@ function wiki2plain( $xml_fn, $txt_fn ) {
 				$str .= $tmp2;
 			}
 
-	//		if( $page_cnt == 6700 ) {
-			if( strpos( $str, "백남준" ) !== false ) {
+//			if( $page_cnt == 6700 ) {
+//			if( strpos( $str, "백남준" ) !== false ) {
 			$plain_str = plain( $str );
 			fputs( $txt_fp, "#### $line_cnt ####\n" );
 			fputs( $txt_fp, $plain_str );
 			fputs( $txt_fp, "\n\n" );
-			break; }
+//			break; }
 
 			$page_cnt++;
 		}
