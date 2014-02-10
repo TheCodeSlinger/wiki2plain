@@ -59,7 +59,7 @@ function wiki2plain( $xml_fn, $txt_fn ) {
 			}
 			$plain_str = plain( $str );
 
-			if( $page_cnt == 2 ) {
+			if( $page_cnt == 4 ) {
 			fputs( $txt_fp, $plain_str );
 			break;
 			}
