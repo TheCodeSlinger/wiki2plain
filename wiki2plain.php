@@ -99,6 +99,7 @@ function strip_head( $str ) {
 	$pattern[] = "/(\s+)<format>(.*)<\/format>/e"; $replace[] = "";
 	$pattern[] = "/(\s+)<parentid>(.*)<\/parentid>/e"; $replace[] = "";
 	$pattern[] = "/(\s+)<timestamp>(.*)<\/timestamp>/e"; $replace[] = "";
+	$pattern[] = "/(\s+)<minor \/>/e"; $replace[] = "";
 	$pattern[] = "/(\s+)<contributor>(.*)<\/contributor>/es"; $replace[] = "";
 	$pattern[] = "/(\s+)<comment>(.*)<\/comment>/es"; $replace[] = "";
 
@@ -171,6 +172,16 @@ function strip_wikitag( $str ) {
 
 //	$pattern[] = "/\[\[(.*)\]\]/"; $replace[] = "($1)";
 	$str = preg_replace( $pattern, $replace, $str );
+
+	while( true ) {
+		$pos = strpos( $str, "{|" );
+		if( $pos === false )	break;
+		$pos2 = strpos( $str, "|}", $pos+2 );
+		if( $pos2 === false )	break;
+
+		$str = substr( $str, 0, $pos ) . substr( $str, $pos2+2 );
+	}
+
 	return $str;
 }
 
